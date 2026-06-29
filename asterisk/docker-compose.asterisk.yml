@@ -27,5 +27,7 @@ services:
       - ./extensions.conf:/etc/asterisk/extensions.conf:ro
       - ./rtp.conf:/etc/asterisk/rtp.conf:ro
       - ./modules.conf:/etc/asterisk/modules.conf:ro
+      # AGI mounted at a fixed path; the dialplan calls it by absolute path
+      # (/opt/agi/...) so it works regardless of Asterisk's astagidir default.
       # rw so the entrypoint can ensure the AGI is executable.
-      - ./agi:/var/lib/asterisk/agi-bin
+      - ./agi:/opt/agi

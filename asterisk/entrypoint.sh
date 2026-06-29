@@ -20,6 +20,6 @@ if [ "$PUBLIC_IP" = "REPLACE_WITH_VPS_PUBLIC_IP" ] || [ -z "$PUBLIC_IP" ]; then
 fi
 
 # Make sure the AGI is executable (mounts can lose the bit).
-chmod +x /var/lib/asterisk/agi-bin/*.mjs 2>/dev/null || true
+chmod +x /opt/agi/*.mjs 2>/dev/null || true
 
 exec asterisk -f -vvvg
