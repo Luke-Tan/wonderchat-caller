@@ -3,9 +3,13 @@
 #
 #   cd asterisk && docker compose -f docker-compose.asterisk.yml up -d --build
 #
-# Builds an Asterisk image with Node (for the Retell AGI) + envsubst (renders
-# pjsip.conf from .env at boot — no manual templating). Host networking is
-# REQUIRED so SIP/RTP use the real interface, not Docker's NAT bridge.
+# Builds a Debian-based Asterisk image with Node (for the Retell AGI) + envsubst
+# (renders pjsip.conf from .env at boot). Host networking is REQUIRED so SIP/RTP
+# use the real interface, not Docker's NAT bridge.
+#
+# All env comes from ../.env via `env_file` (loaded into the container). We do
+# NOT use compose ${VAR} interpolation here — that reads a .env next to THIS
+# file, which doesn't exist, and would blank out the values.
 # ─────────────────────────────────────────────────────────────────────────────
 services:
   asterisk:
@@ -15,18 +19,13 @@ services:
     image: retell-asterisk:latest
     restart: unless-stopped
     network_mode: host          # SIP 5060 + RTP range on the host interface
-    env_file: ../.env           # SIP_*, RETELL_*, PUBLIC_IP all come from here
-    environment:
-      RETELL_API_KEY: ${RETELL_API_KEY}
-      RETELL_AGENT_ID: ${RETELL_AGENT_ID}
-      RETELL_API_BASE_URL: ${RETELL_API_BASE_URL:-https://api.retellai.com}
-      RETELL_SIP_DOMAIN: ${RETELL_SIP_DOMAIN:-sip.retellai.com}
-      ERROR_FALLBACK_MODE: ${ERROR_FALLBACK_MODE:-hangup}
-      BACKUP_NUMBER: ${BACKUP_NUMBER:-}
+    env_file: ../.env           # SIP_*, RETELL_*, PUBLIC_IP -> container env
     volumes:
       # pjsip.conf is a TEMPLATE rendered by the entrypoint (has ${SIP_*} vars).
       - ./pjsip.conf:/etc/asterisk/templates/pjsip.conf:ro
-      # These are used as-is (only Asterisk ${ENV()}/dialplan tokens, no shell vars).
+      # Used as-is (only Asterisk ${ENV()}/dialplan tokens, no shell vars).
       - ./extensions.conf:/etc/asterisk/extensions.conf:ro
       - ./rtp.conf:/etc/asterisk/rtp.conf:ro
-      - ./agi:/var/lib/asterisk/agi-bin:ro
+      - ./modules.conf:/etc/asterisk/modules.conf:ro
+      # rw so the entrypoint can ensure the AGI is executable.
+      - ./agi:/var/lib/asterisk/agi-bin
