@@ -1,0 +1,5 @@
+# Caddy reverse proxy: automatic Let's Encrypt TLS for the webhook service.
+# Replace caller.yourdomain.com with your real DNS name (A record -> VPS IP).
+caller.yourdomain.com {
+	reverse_proxy middleware:3000
+}

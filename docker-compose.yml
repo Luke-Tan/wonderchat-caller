@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Retell SIP middleware — webhook/API service.
+#
+# This compose runs the Node/TypeScript call-control service ONLY. The SIP/media
+# layer (Jambonz or Asterisk) runs separately — see docs/SETUP.md. Jambonz mini
+# is installed via its own Debian package / VM image and points its Application
+# webhook at this service's PUBLIC_BASE_URL.
+#
+#   Jambonz feature-server  ──HTTP──►  this service  ──HTTPS──►  Retell API
+#
+# Put a TLS reverse proxy (Caddy/Nginx) in front so Jambonz can reach it over
+# https. A ready-to-use Caddy service is included and commented out below.
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  middleware:
+    build: .
+    image: retell-sip-middleware:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Surface the running git SHA in /health if provided at build/run time.
+      APP_VERSION: ${APP_VERSION:-dev}
+    ports:
+      # Bind to localhost only; let Caddy/Nginx terminate TLS and proxy in.
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test:
+        ["CMD", "node", "-e",
+         "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ── Optional: Caddy for automatic HTTPS in front of the webhook ─────────────
+  # caddy:
+  #   image: caddy:2
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   depends_on:
+  #     - middleware
+
+# volumes:
+#   caddy_data:
+#   caddy_config:
